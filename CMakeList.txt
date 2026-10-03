@@ -1,0 +1,13 @@
+cmake_minimum_required(VERSION 3.15)
+project(chess_server LANGUAGES CXX)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+add_executable(server src/main.cpp)
+target_include_directories(server SYSTEM PRIVATE
+  include/server/Crow/include
+  include/server/asio/asio/include)
+target_compile_definitions(server PRIVATE ASIO_STANDALONE ASIO_NO_DEPRECATED)
+if(WIN32)
+  target_link_libraries(server PRIVATE ws2_32 mswsock)
+endif()
