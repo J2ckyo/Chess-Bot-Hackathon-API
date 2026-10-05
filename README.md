@@ -5,9 +5,9 @@ Uses Crow to route calls, haddle websockets.
 Chess Logic built inside Model
 Model uses design patterns and object oriented design
 
-Todo:
+### Todo:
 1. UML Diagram
-# Done (See docs/src/Data Flow CHESS API & docs/src/UML Chess Hackathon)
+#### Done (See docs/src/Data Flow CHESS API & docs/src/UML Chess Hackathon)
 <br>
 2. Model
 2. i. Test Model
