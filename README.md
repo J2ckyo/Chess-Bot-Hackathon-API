@@ -18,3 +18,9 @@ Todo:
 Crow: https://github.com/CrowCpp/Crow
 
 Built by Jack Simonton
+
+
+git submodule add https://github.com/CrowCpp/Crow.git Crow
+git submodule add https://github.com/chriskohlhoff/asio.git asio
+
+
