@@ -7,6 +7,8 @@ Model uses design patterns and object oriented design
 
 Todo:
 1. UML Diagram
+# Done (See docs/src/Data Flow CHESS API & docs/src/UML Chess Hackathon)
+<br>
 2. Model
 2. i. Test Model
 3. Controller
