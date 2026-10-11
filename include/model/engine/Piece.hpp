@@ -6,62 +6,56 @@
 #ifndef PIECE_HPP
 #define PIECE_HPP
 
-#include <vector>
-#include <memory>
-#include "Types.hpp"
-
-// Forward Declaration
-class Board;
-class MoveRule;
+#include <string>
+#include <optional>
 
 /**
- * @brief Replaces inheritance with delegration
- * This is the context in the strategy pattern
+ * @class Piece Class
+ * @brief Kind/Colour of Pieces
+ * and helper functions
  */
 
 class Piece{
     public:
 
         /**
-         * @brief Piece Constructor
+         * @brief Enum of kinds of pieces
          */ 
-        Piece(PieceKind kind, Colour colour, std::shared_ptr<const MoveRule> rule);
+        enum Kind{
+            PAWN,
+            ROOK,
+            KNIGHT,
+            BISHOP,
+            QUEEN,
+            KING
+        };
 
         /**
-         * @brief Return Moves method
+         * @brief Enum of kinds of Colours
          */
-
-        std::vector<Position> moves(const Board& board, Position pos) const;
-
-        /**
-         * @brief kind getter
-         */
-        PieceKind kind() const {
-            return kind_;
-        }
+        enum Colour{
+            WHITE,
+            BLACK
+        };
 
         /**
-         * @brief colour getter
+         * @brief Converts Letters K, q, .. , 
+         * to King BLACK, Queen WHITE ...
          */
-        Colour colour() const {
-            return colour_;
-        }
-
-    private:
-        /**
-         * @brief Private piece kind
-         */
-        PieceKind kind_;
-        /**
-         * @brief Private Colour
-         */
-
-        Colour colour_;
+        char piece_from_FEN(char letter);
 
         /**
-         * @brief A pointer to MoveRule (The Strategy)
+         * @brief Converts pieces King, Queen, ..
+         * to K, q, .. 
          */
-        std::shared_ptr<const MoveRule> rule_;
+        std::optional<Piece> piece_to_fen(Kind, Colour);
+
+        /**
+         * @brief Changes one colour for another.
+         * White <-> Black
+         */
+        Colour opposite(Colour);
+
 };
 
 
