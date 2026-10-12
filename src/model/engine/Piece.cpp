@@ -6,9 +6,8 @@
 #include "Piece.hpp"
 #include <cctype>
 
-char Piece::piece_to_fen(Kind kind, Colour colour) const{
+char Piece::piece_to_fen(Kind kind, Colour colour){
     std::string Pieces = "prnbqk";
-    char letter;
     // Converts the ENUM kind to type int which is the index
     int piece_index = static_cast<int>(kind);
     // Assigns letter then FEN Char

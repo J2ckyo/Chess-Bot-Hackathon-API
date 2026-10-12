@@ -48,7 +48,7 @@ class Piece{
          * @brief Converts pieces King, Queen, ..
          * to K, q, .. 
          */
-        char piece_to_fen(Kind, Colour) const;
+        char piece_to_fen(Kind, Colour);
 
         /**
          * @brief Changes one colour for another.
@@ -61,4 +61,4 @@ class Piece{
 };
 
 
-#endif // PIECE_HPP
+#endif
