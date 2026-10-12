@@ -42,20 +42,22 @@ class Piece{
          * @brief Converts Letters K, q, .. , 
          * to King BLACK, Queen WHITE ...
          */
-        char piece_from_FEN(char letter);
+        std::optional<Piece> piece_from_fen(char letter);
 
         /**
          * @brief Converts pieces King, Queen, ..
          * to K, q, .. 
          */
-        std::optional<Piece> piece_to_fen(Kind, Colour);
+        char piece_to_fen(Kind, Colour) const;
 
         /**
          * @brief Changes one colour for another.
          * White <-> Black
          */
         Colour opposite(Colour);
-
+        
+        Kind kind;
+        Colour colour;
 };
 
 
