@@ -18,7 +18,7 @@ std::optional<Square> Square::squares_from_fen(const std::string& pos){
     int rank_pos = pos[1];
 
     // Checks if values are in range.
-    if (file_pos < 0 || file_pos > 7 || rank_pos < 0 || rank_pos > 7){
+    if (file_pos < 'a' || file_pos > 'h' || rank_pos < '1' || rank_pos > '8'){
         return std::nullopt;
     }
 

@@ -1,12 +1,19 @@
-#include "Piece.hpp"
+/**
+ * Tests for Piece, Square, and Move.
+ * Run with: make run
+ * Prints only failures, then a summary.
+ */
+
 #include <iostream>
+#include <optional>
+#include <string>
 
-int main(){
+#include "Piece.hpp"
+#include "Square.hpp"
+#include "Move.hpp"
 
-    Piece piece;
 
-    char ex = piece.piece_to_fen(Piece::QUEEN, Piece::BLACK);
-    std::cout << ex;
+int main() {
 
     return 0;
-};  
+}

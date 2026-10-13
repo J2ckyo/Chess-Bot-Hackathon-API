@@ -21,7 +21,7 @@ class Square{
         /**
          * @brief Translate from FEN to board index's
          */
-        std::optional<Square> squares_from_fen(const std::string& pos);
+        static std::optional<Square> squares_from_fen(const std::string& pos);
 
         /**
          * @brief Translate board index's to FEN code
@@ -31,7 +31,7 @@ class Square{
         /**
          * @brief Takes a rank and file and returns a bool
          */
-        bool on_board(int rnak, int file);
+        static bool on_board(int rank, int file);
 
         /**
          * @brief Comparison Operator compares rank and file
@@ -41,7 +41,5 @@ class Square{
         int file;
         int rank;
 };
-
-
 
 #endif
