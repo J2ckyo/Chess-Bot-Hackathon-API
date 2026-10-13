@@ -7,36 +7,95 @@
  #define BOARD_HPP
 
  #include <vector>
- #include "Types.hpp"
+ #include <array>
+ #include <optional>
+ #include <string>
  #include "Piece.hpp"
+ #include "Square.hpp"
+ #include "Move.hpp"
 
 class Board{
     public:
-    /**
-     * @brief Board constructor to 8x8
-     */
-    Board()
+        /**
+         * @brief Returns what's on that square, everything uses this
+         * 
+         * @param square
+         * @return std::optional<Piece> 
+         */
+        std::optional<Piece> piece_at(Square square);
 
-    /**
-     * @brief Checks if piece in bounds
-     */
-    bool in_bounds(Position pos);
+        /**
+         * @brief Puts a piece on a square or empties it. 
+         * 
+         * @param square 
+         * @param piece 
+         */
+        void place(const Square& square, std::optional<Piece> piece);
 
-    /**
-     * @brief Get's the position of a piece
-     */
-    Piece piece_at(Position pos);
+        /**
+         * @brief Splits FEN Json data into 6 fields
+         * 
+         * @param fen_json 
+         * @return std::optional<Board> 
+         */
+        static std::optional<Board> read_all_fen(std::string fen_json);
 
-    /**
-     * @brief Places piece at a position
-     */
-    void place(Position pos, const Piece& piece);
+        /**
+         * @brief Does the reverse, translates board data into FEN
+         * 
+         * 
+         * @param board 
+         * @return std::string 
+         */
+        std::string all_to_fen(std::optional<Board> board);
+
+        /**
+         * @brief Applies the move in two ways
+         * Noramal move - 
+         * Special move - 
+         * @param move 
+         */
+        void apply(const Move& move);
 
     private:
+
         /**
-         * @brief 2D Vector for the board
+         * @brief 8x8 Array of type optional<Piece>
+         * 
          */
-        std::vector<std::vector<int>> board;
+        std::optional<Piece> Board[8][8];
+
+        /**
+         * @brief Which colour is the side to move
+         * type Colour
+         * 
+         */
+        Piece::Colour side_to_move;
+
+        /**
+         * @brief Holds a string like "KQkq" or "-"
+         * 
+         */
+        std::string castling;
+
+        /**
+         * @brief Enpassant
+         * 
+         */
+        std::optional<Square> enp_square;
+
+        /**
+         * @brief Keeps track of halfmoves
+         * 
+         */
+        int halfmove;
+
+        /**
+         * @brief Keeps track of full moves
+         * 
+         */
+        int fullmove;
 };
 
  #endif // BOARD_HPP
+ 
