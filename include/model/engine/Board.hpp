@@ -3,16 +3,18 @@
  * @date Fall 2026
  */
 
- #ifndef BOARD_HPP
- #define BOARD_HPP
+#ifndef BOARD_HPP
+#define BOARD_HPP
 
- #include <vector>
- #include <array>
- #include <optional>
- #include <string>
- #include "Piece.hpp"
- #include "Square.hpp"
- #include "Move.hpp"
+#include <vector>
+#include <array>
+#include <optional>
+#include <string>
+#include <cctype>
+#include <sstream>
+#include "Piece.hpp"
+#include "Square.hpp"
+#include "Move.hpp"
 
 class Board{
     public:
@@ -22,7 +24,7 @@ class Board{
          * @param square
          * @return std::optional<Piece> 
          */
-        std::optional<Piece> piece_at(Square square);
+        std::optional<Piece> piece_at( const Square& square) const;
 
         /**
          * @brief Puts a piece on a square or empties it. 
@@ -47,7 +49,7 @@ class Board{
          * @param board 
          * @return std::string 
          */
-        std::string all_to_fen(std::optional<Board> board);
+        std::string all_to_fen() const;
 
         /**
          * @brief Applies the move in two ways
@@ -63,7 +65,7 @@ class Board{
          * @brief 8x8 Array of type optional<Piece>
          * 
          */
-        std::optional<Piece> Board[8][8];
+        std::optional<Piece> board[8][8];
 
         /**
          * @brief Which colour is the side to move
@@ -88,14 +90,15 @@ class Board{
          * @brief Keeps track of halfmoves
          * 
          */
-        int halfmove;
+        int halfmove = 0;
 
         /**
          * @brief Keeps track of full moves
          * 
          */
-        int fullmove;
+        int fullmove = 1;
+
 };
 
- #endif // BOARD_HPP
+#endif // BOARD_HPP
  
