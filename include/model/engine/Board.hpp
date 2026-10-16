@@ -12,6 +12,7 @@
 #include <string>
 #include <cctype>
 #include <sstream>
+#include <cmath>
 #include "Piece.hpp"
 #include "Square.hpp"
 #include "Move.hpp"

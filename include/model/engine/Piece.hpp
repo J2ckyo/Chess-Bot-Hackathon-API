@@ -54,7 +54,7 @@ class Piece{
          * @brief Changes one colour for another.
          * White <-> Black
          */
-        Colour opposite(Colour);
+        static Colour opposite(Colour);
         
         Kind kind;
         Colour colour;
