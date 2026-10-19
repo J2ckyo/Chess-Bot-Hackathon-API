@@ -10,24 +10,24 @@ const std::vector<std::pair<int, int>> King = {{1, 1}, {-1, -1}, {1, 0}, {0, 1},
 const std::vector<std::pair<int, int>> Rook = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
 const std::vector<std::pair<int, int>> Bishop = {{1, 1}, {1, -1}, {-1, 1}, {-1, -1}};
 
-bool is_attacked(const Board& board, const Square& square, Piece::Colour by) {
+bool MoveGenerator::is_attacked(const Board& board, const Square& square, Piece::Colour by) {
 
 }
 
-bool in_check(const Board& board, Piece::Colour colour) {
+bool MoveGenerator::in_check(const Board& board, Piece::Colour colour) {
 
 }
 
 
-std::vector<Move> pseudo_legal(const Board& board) {
+std::vector<Move> MoveGenerator::pseudo_legal(const Board& board) {
 
 }
 
-std::vector<Move> legal_moves(const Board& board) {
+std::vector<Move> MoveGenerator::legal_moves(const Board& board) {
 
 }
 
-bool is_legal(const Board& board, const Move& move) {
+bool MoveGenerator::is_legal(const Board& board, const Move& move) {
 
 }
 
@@ -45,12 +45,44 @@ std::optional<Square> MoveGenerator::find_king(const Board& board, Piece::Colour
 }
 
 
-void jump_moves(const Board& board, Square& square, Piece::Colour colour, const std::vector<std::pair<int, int>>&, std::vector<Move>&) {
+void MoveGenerator::jump_moves(const Board& board, Square& from, Piece::Colour colour, const std::vector<std::pair<int, int>>& offset, std::vector<Move>& moves) {
+    for (const std::pair<int, int>& offset : offset) {
+        int new_file = from.file + offset.first;
+        int new_rank = from.rank + offset.second;
 
+        if (!Square::on_board(new_rank, new_file)) {
+            continue;
+        }
+
+        Square target{new_file, new_rank};
+        std::optional<Piece> occupant = board.piece_at(target);
+
+        if (occupant && occupant->colour == colour) {
+            continue;
+        }
+
+        moves.push_back(Move{from, target, std::nullopt});
+    }
 }
 
-void slide_moves(const Board& board, Square& square, Piece::Colour colour, const std::vector<std::pair<int, int>>&, std::vector<Move>&) {
+void MoveGenerator::slide_moves(const Board& board, Square& from, Piece::Colour colour, const std::vector<std::pair<int, int>>& directions, std::vector<Move>& moves) {
+    for (const std::pair<int, int>& dir : directions) {
+        int new_file = from.file + dir.first;
+        int new_rank = from.rank + dir.second;
 
+        if (!Square::on_board(new_rank, new_file)) {
+            break;
+        }
+
+        Square target{new_file, new_rank};
+        std::optional<Piece> occupant = board.piece_at(target);
+
+        if (!occupant) {
+            moves.push_back(Move{from, target, std::nullopt});
+        }
+
+
+    }
 }
 
 
