@@ -60,8 +60,26 @@ class Board{
          */
         void apply(const Move& move);
 
-    private:
+        /**
+         * @brief Getter function for MoveGenerator
+         * @return Piece::Colour
+         */
+        Piece::Colour get_side_to_move() const {return side_to_move;}
 
+        /**
+         * @brief Getter function for MoveGenerator
+         * @return Castling String
+         */
+        std::string get_castling() const {return castling;}
+
+        /**
+         * @brief Getter function for MoveGenerator
+         * @return En-passant
+         */
+        std::optional<Square> get_en_passant() const {return enp_square;}
+
+    private:
+        
         /**
          * @brief 8x8 Array of type optional<Piece>
          * 

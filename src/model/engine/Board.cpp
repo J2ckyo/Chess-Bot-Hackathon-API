@@ -27,8 +27,6 @@ std::optional<Board> Board::read_all_fen(std::string fen_json) {
     int file = 0;
     int half = 0;
     int full = 0;
-    std::stringstream rows(placement);
-    std::stringstream ss(fen_json);
     std::stringstream fields(fen_json);
 
     // Split into 6 fields
@@ -36,8 +34,10 @@ std::optional<Board> Board::read_all_fen(std::string fen_json) {
         return std::nullopt;
     }
 
+    std::stringstream rows(placement);
+
     // Pieces
-    while (getline(ss, token, '/')) {
+    while (getline(rows, token, '/')) {
         if (rank < 0) return std::nullopt;
 
         for (auto it = token.begin(); it != token.end(); ++it){
@@ -222,9 +222,9 @@ void Board::apply(const Move& move){
     }
 
     // Enpassant Moves
+    enp_square = std::nullopt;
     if ((piece->kind == Piece::PAWN) && abs(move.to.rank - move.from.rank) == 2) {
         // clear square
-        enp_square = std::nullopt;
         enp_square = Square{move.from.file, (move.from.rank + move.to.rank) / 2};
     }
 
@@ -251,6 +251,25 @@ void Board::apply(const Move& move){
         place(rook_to, piece_at(rook_from));
         place(rook_from, std::nullopt);
     }
+
+    // Castling Rights
+    auto remove_right = [this](char c) {
+        std::size_t pos = castling.find(c);
+        if (pos != std::string::npos) castling.erase(pos, 1);
+    };
+
+    const Square e1{4, 0}, e8{4, 7};
+    const Square a1{0, 0}, h1{7, 0}, a8{0, 7}, h8{7, 7};
+
+    if (move.from == e1) {remove_right('K'); remove_right('Q'); }
+    if (move.from == e8) {remove_right('k'); remove_right('q'); }
+
+    if (move.from == a1 || move.to == a1) remove_right('Q');
+    if (move.from == h1 || move.to == h1) remove_right('K');
+    if (move.from == a8 || move.to == a8) remove_right('q');
+    if (move.from == h8 || move.to == h8) remove_right('k');
+
+    if (castling.empty()) castling = "-";
 
 }
 

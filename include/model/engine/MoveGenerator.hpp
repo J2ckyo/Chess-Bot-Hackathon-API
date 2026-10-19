@@ -1,15 +1,73 @@
-#ifndef TYPES_HPP
-#define TYPES_HPP
+#ifndef MOVEGENERATOR_HPP
+#define MOVEGENERATOR_HPP
 
 /**
- * @brief Shared
+ * @author Jack. Simonton <jack.simonton@uleth.ca>
+ * @date Fall 2026
  */
-enum class Colour {White, Black};
-enum class PieceKind {Pawn, Knight, Bishop, Rook, Queen, King};
 
-struct Position {
-    int row = 0;
-    int col = 0;
-        };
+#include "Board.hpp"
+#include "Square.hpp"
+#include "Piece.hpp"
+#include "Move.hpp"
+#include <utility>
+#include <vector>
+#include <optional>
 
-#endif // TYPES_HPP
+ /**
+  * @class MoveGenerator
+  * @brief Checks Move legality and ending the game
+  */
+class MoveGenerator {
+    public:
+
+        /**
+         * @brief Can I piece reach square
+         * @return bool
+         */
+        static bool is_attacked(const Board& board, const Square& square, Piece::Colour by);
+
+        /**
+         * @brief Is the Kind in check
+         * @return bool
+         */
+        static bool in_check(const Board& board, Piece::Colour colour);
+
+        /**
+         * @brief Every move based on how pieces move
+         * @return std::vector<Move>
+         */
+        static std::vector<Move> pseudo_legal(const Board& board);
+
+        /**
+         * @brief Checks legal moves
+         * @return std::vector<Move>
+         */
+        static std::vector<Move> legal_moves(const Board& board);
+
+        /**
+         * @brief is move in legal moves, server uses
+         * it to check the bots move.
+         * @return bool
+         */
+        static bool is_legal(const Board& board, const Move& move);
+
+    private:
+        /**
+         * @brief Helper function finds the king.
+         */
+        static std::optional<Square> find_king(const Board& board, Piece::Colour colour);
+
+        /**
+         * @brief Jump move helper function
+         */
+        static void jump_moves(const Board& board, Square& square, Piece::Colour colour, const std::vector<std::pair<int, int>>&, std::vector<Move>&);
+
+        /**
+         * @brief Slide move helper function
+         */
+        static void slide_moves(const Board& board, Square& square, Piece::Colour colour, const std::vector<std::pair<int, int>>&, std::vector<Move>&);
+
+};
+
+#endif
