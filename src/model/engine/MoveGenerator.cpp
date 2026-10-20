@@ -11,7 +11,84 @@ const std::vector<std::pair<int, int>> Rook = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}}
 const std::vector<std::pair<int, int>> Bishop = {{1, 1}, {1, -1}, {-1, 1}, {-1, -1}};
 
 bool MoveGenerator::is_attacked(const Board& board, const Square& square, Piece::Colour by) {
+    for (const auto& move : Knight) {
+        int new_file = square.file + move.first;
+        int new_rank = square.rank + move.second;
+        bool is_knight = Square::on_board(new_file, new_rank);
+        std::optional<Piece> knight = board.piece_at(Square{new_file, new_rank});
+        if (is_knight && by == knight->colour && knight->colour == Piece::KNIGHT) {
+            return true;
+        }
+    }
 
+    for (const auto& move : King) {
+        int new_file = square.file + move.first;
+        int new_rank = square.rank + move.second;
+        bool is_king = Square::on_board(new_file, new_rank);
+        std::optional<Piece> king = board.piece_at(Square{new_file, new_rank});
+        if (is_king && by == king->colour && king->colour == Piece::KING) {
+            return true;
+        } 
+    }
+
+    for (const auto& move : Rook) {
+        int new_file = square.file;
+        int new_rank = square.rank;
+        while (true) {
+            new_file += move.first;
+            new_rank += move.second;
+
+            if (!Square::on_board(new_file, new_rank)) {
+                break;
+            }
+
+            std::optional<Piece> occupant = board.piece_at(Square{new_file, new_rank});
+            if (occupant) {
+                if ((occupant->kind == Piece::ROOK || occupant->kind == Piece::QUEEN) && occupant->colour == by) {
+                    return true;
+                }
+                break;
+            }
+        }
+    }
+
+    for (const auto& move : Bishop) {
+        int new_file = square.file;
+        int new_rank = square.rank;
+        while (true) {
+            new_file += move.first;
+            new_rank += move.second;
+
+            if (!Square::on_board(new_file, new_rank)) {
+                break;
+            }
+
+            std::optional<Piece> occupant = board.piece_at(Square{new_file, new_rank});
+            if (occupant) {
+                if ((occupant->kind == Piece::BISHOP || occupant->kind == Piece::QUEEN) && occupant->colour == by) {
+                    return true;
+                }
+                break;
+            }
+        }
+    }
+
+    int pawn_rank = (by == Piece::WHITE) ? square.rank - 1 : square.rank + 1;
+
+    for (int file_change : {-1, 1}) {
+        int pawn_file = square.file + file_change;
+
+        if (!Square::on_board(pawn_file, pawn_rank)) {
+            continue;
+        }
+
+        std::optional<Piece> occupant = board.piece_at(Square{pawn_file, pawn_rank});
+        if (occupant && occupant->kind == Piece::PAWN && occupant->colour == by) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 bool MoveGenerator::in_check(const Board& board, Piece::Colour colour) {
