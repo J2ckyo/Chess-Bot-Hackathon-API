@@ -68,6 +68,11 @@ class MoveGenerator {
          */
         static void slide_moves(const Board& board, const Square& from, Piece::Colour colour, const std::vector<std::pair<int, int>>& directions, std::vector<Move>& moves);
 
+        /**
+         * @brief Pawn moves helper
+         */
+        static void pawn_moves(const Board& board, const Square& from, Piece::Colour colour, std::vector<Move>& moves);
+
 };
 
 #endif

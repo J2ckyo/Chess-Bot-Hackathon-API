@@ -92,7 +92,12 @@ bool MoveGenerator::is_attacked(const Board& board, const Square& square, Piece:
 }
 
 bool MoveGenerator::in_check(const Board& board, Piece::Colour colour) {
+    std::optional<Square> is_king = find_king(board, colour);
+    if (!is_king) {
+        return false;
+    }
 
+    return is_attacked(board, *is_king, Piece::opposite(colour));
 }
 
 
@@ -169,6 +174,46 @@ void MoveGenerator::slide_moves(const Board& board, const Square& from, Piece::C
             }
         }
     }
+}
+
+
+void MoveGenerator::pawn_moves(const Board& board, const Square& from, Piece::Colour colour, std::vector<Move>& moves) {
+    int direction = (colour == Piece::WHITE) ? 1 : -1;
+    int start_rank = (colour == Piece::WHITE) ? 1 : 6;
+    int last_rank = (colour == Piece::WHITE) ? 7 : 0;
+
+    auto add_pawn_move = [&](const Square& to) {
+        if (to.rank == last_rank) {
+            moves.push_back(Move{from, to, Piece::QUEEN});
+            moves.push_back(Move{from, to, Piece::ROOK});
+            moves.push_back(Move{from, to, Piece::BISHOP});
+            moves.push_back(Move{from, to, Piece::KNIGHT});
+        } 
+        else {
+            moves.push_back(Move{from, to, std::nullopt});
+        }
+    };
+
+    int forward_rank = from.rank + direction;
+
+    if (Square::on_board(forward_rank, from.file)) {
+        Square one{from.file, forward_rank};
+        if (!board.piece_at(one)) {
+            add_pawn_move(one);
+
+            int two_rank = from.rank + 2 * direction;
+            if (from.rank == start_rank) {
+                Square two{from.file, two_rank};
+                if (!board.piece_at(two)) {
+                    moves.push_back(Move{from, two, std::nullopt});
+                }
+            }
+        }
+    }
+
+    std::optional<Square> ep = board.get_en_passant();
+
+    
 }
 
 
