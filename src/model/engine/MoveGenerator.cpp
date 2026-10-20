@@ -45,7 +45,7 @@ std::optional<Square> MoveGenerator::find_king(const Board& board, Piece::Colour
 }
 
 
-void MoveGenerator::jump_moves(const Board& board, Square& from, Piece::Colour colour, const std::vector<std::pair<int, int>>& offset, std::vector<Move>& moves) {
+void MoveGenerator::jump_moves(const Board& board, const Square& from, Piece::Colour colour, const std::vector<std::pair<int, int>>& offset, std::vector<Move>& moves) {
     for (const std::pair<int, int>& offset : offset) {
         int new_file = from.file + offset.first;
         int new_rank = from.rank + offset.second;
@@ -65,23 +65,32 @@ void MoveGenerator::jump_moves(const Board& board, Square& from, Piece::Colour c
     }
 }
 
-void MoveGenerator::slide_moves(const Board& board, Square& from, Piece::Colour colour, const std::vector<std::pair<int, int>>& directions, std::vector<Move>& moves) {
+void MoveGenerator::slide_moves(const Board& board, const Square& from, Piece::Colour colour, const std::vector<std::pair<int, int>>& directions, std::vector<Move>& moves) {
     for (const std::pair<int, int>& dir : directions) {
-        int new_file = from.file + dir.first;
-        int new_rank = from.rank + dir.second;
+        int new_file = from.file;
+        int new_rank = from.rank;
 
-        if (!Square::on_board(new_rank, new_file)) {
-            break;
+        while (true) {
+            new_file += dir.first;
+            new_rank += dir.second;
+
+            if (!Square::on_board(new_file, new_rank)) {
+                break;
+            }
+
+            Square target{new_file, new_rank};
+            std::optional<Piece> occupant = board.piece_at(target);
+
+            if (!occupant) {
+                moves.push_back(Move{from, target, std::nullopt});
+            }
+            else {
+                if (occupant->colour != colour) {
+                    moves.push_back(Move{from, target, std::nullopt});
+                }
+                break;
+            }
         }
-
-        Square target{new_file, new_rank};
-        std::optional<Piece> occupant = board.piece_at(target);
-
-        if (!occupant) {
-            moves.push_back(Move{from, target, std::nullopt});
-        }
-
-
     }
 }
 

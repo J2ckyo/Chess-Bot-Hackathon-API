@@ -39,7 +39,7 @@ std::string Square::squares_to_fen() const{
     return fen;
 }
 
-bool Square::on_board(int rank, int file){
+bool Square::on_board(int file, int rank){
     if (file < 0 || file > 7 || rank < 0 || rank > 7){
         return false;
     }

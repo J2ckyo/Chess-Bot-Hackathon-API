@@ -61,12 +61,12 @@ class MoveGenerator {
         /**
          * @brief Jump move helper function
          */
-        static void jump_moves(const Board& board, Square& from, Piece::Colour colour, const std::vector<std::pair<int, int>>& offest, std::vector<Move>& moves);
+        static void jump_moves(const Board& board, const Square& from, Piece::Colour colour, const std::vector<std::pair<int, int>>& offest, std::vector<Move>& moves);
 
         /**
          * @brief Slide move helper function
          */
-        static void slide_moves(const Board& board, Square& from, Piece::Colour colour, const std::vector<std::pair<int, int>>& directions, std::vector<Move>& moves);
+        static void slide_moves(const Board& board, const Square& from, Piece::Colour colour, const std::vector<std::pair<int, int>>& directions, std::vector<Move>& moves);
 
 };
 

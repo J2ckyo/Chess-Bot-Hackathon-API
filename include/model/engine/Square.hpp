@@ -31,7 +31,7 @@ class Square{
         /**
          * @brief Takes a rank and file and returns a bool
          */
-        static bool on_board(int rank, int file);
+        static bool on_board(int file, int rank);
 
         /**
          * @brief Comparison Operator compares rank and file
