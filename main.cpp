@@ -6,19 +6,6 @@
 
 #include <iostream>
 #include <optional>
-#include <string>
-
-#include "Piece.hpp"
-#include "Square.hpp"
-#include "Move.hpp"
-/**
- * Tests for Piece, Square, and Move.
- * Run with: make run
- * Prints only failures, then a summary.
- */
-
-#include <iostream>
-#include <optional>
 #include <sstream>
 #include <string>
 
@@ -26,6 +13,7 @@
 #include "Square.hpp"
 #include "Move.hpp"
 #include "Board.hpp"
+#include "MoveGenerator.hpp"
 
 static int passed = 0;
 static int failed = 0;
@@ -276,6 +264,132 @@ static void test_board_apply() {
         "pawn captures and promotes to knight");
 }
 
+// ---------------------------------------------------------------- MoveGenerator
+
+static Square sq(const std::string& name) {
+    return *Square::squares_from_fen(name);
+}
+
+static std::optional<Board> load(const std::string& fen, const std::string& label) {
+    std::optional<Board> b = Board::read_all_fen(fen);
+    check(b.has_value(), label + " (FEN reads)");
+    return b;
+}
+
+// Counts every move sequence of the given length. Known answers catch any bug.
+static long long perft(const Board& board, int depth) {
+    if (depth == 0) return 1;
+    std::vector<Move> moves = MoveGenerator::legal_moves(board);
+    if (depth == 1) return static_cast<long long>(moves.size());
+    long long nodes = 0;
+    for (const Move& m : moves) {
+        Board copy = board;
+        copy.apply(m);
+        nodes += perft(copy, depth - 1);
+    }
+    return nodes;
+}
+
+static void check_count(const std::string& fen, std::size_t expected, const std::string& label) {
+    std::optional<Board> b = load(fen, label);
+    if (!b) return;
+    std::size_t got = MoveGenerator::legal_moves(*b).size();
+    check_eq(std::to_string(got), std::to_string(expected), label);
+}
+
+static void check_perft(const std::string& fen, int depth, long long expected, const std::string& label) {
+    std::optional<Board> b = load(fen, label);
+    if (!b) return;
+    check_eq(std::to_string(perft(*b, depth)), std::to_string(expected), label);
+}
+
+static void test_is_attacked() {
+    std::optional<Board> start = load(START_FEN, "is_attacked start");
+    if (start) {
+        check(MoveGenerator::is_attacked(*start, sq("e3"), Piece::WHITE), "start: e3 attacked by white pawns");
+        check(MoveGenerator::is_attacked(*start, sq("f3"), Piece::WHITE), "start: f3 attacked by white");
+        check(MoveGenerator::is_attacked(*start, sq("a3"), Piece::WHITE), "start: a3 attacked by the b1 knight");
+        check(!MoveGenerator::is_attacked(*start, sq("e5"), Piece::WHITE), "start: e5 not attacked by white");
+        check(MoveGenerator::is_attacked(*start, sq("e6"), Piece::BLACK), "start: e6 attacked by black pawns");
+        check(!MoveGenerator::is_attacked(*start, sq("e4"), Piece::BLACK), "start: e4 not attacked by black");
+    }
+
+    std::optional<Board> rook = load("8/8/8/8/8/8/8/R6k w - - 0 1", "is_attacked rook");
+    if (rook) check(MoveGenerator::is_attacked(*rook, sq("h1"), Piece::WHITE), "a1 rook attacks h1");
+
+    std::optional<Board> blocked = load("8/8/8/8/8/8/8/R2P3k w - - 0 1", "is_attacked blocked");
+    if (blocked) check(!MoveGenerator::is_attacked(*blocked, sq("h1"), Piece::WHITE), "d1 pawn blocks the rook");
+
+    std::optional<Board> bishop = load("8/8/8/8/8/8/8/B6k w - - 0 1", "is_attacked bishop");
+    if (bishop) check(MoveGenerator::is_attacked(*bishop, sq("h8"), Piece::WHITE), "a1 bishop attacks h8");
+
+    std::optional<Board> king = load("8/8/8/8/8/8/1K6/7k w - - 0 1", "is_attacked king");
+    if (king) check(MoveGenerator::is_attacked(*king, sq("c3"), Piece::WHITE), "b2 king attacks c3");
+}
+
+static void test_in_check() {
+    std::optional<Board> start = load(START_FEN, "in_check start");
+    if (start) {
+        check(!MoveGenerator::in_check(*start, Piece::WHITE), "start: white not in check");
+        check(!MoveGenerator::in_check(*start, Piece::BLACK), "start: black not in check");
+    }
+    std::optional<Board> checked = load("4k3/8/8/8/8/8/8/4R1K1 b - - 0 1", "in_check rook");
+    if (checked) check(MoveGenerator::in_check(*checked, Piece::BLACK), "e1 rook checks e8 king");
+
+    std::optional<Board> shielded = load("4k3/4p3/8/8/8/8/8/4R1K1 b - - 0 1", "in_check blocked");
+    if (shielded) check(!MoveGenerator::in_check(*shielded, Piece::BLACK), "e7 pawn blocks the check");
+
+    std::optional<Board> knight = load("4k3/8/3N4/8/8/8/8/6K1 b - - 0 1", "in_check knight");
+    if (knight) check(MoveGenerator::in_check(*knight, Piece::BLACK), "d6 knight checks e8 king");
+}
+
+static void test_legal_moves() {
+    check_count(START_FEN, 20, "start: 20 legal moves");
+    check_count("rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1", 20, "after e4: black has 20");
+    check_count("4k3/8/8/8/8/8/8/4R1K1 b - - 0 1", 4, "in check: 4 king moves");
+    check_count("4k3/4r3/8/8/8/8/8/4R1K1 b - - 0 1", 10, "pinned rook: 6 rook + 4 king");
+    check_count("8/8/8/3Q4/8/8/8/k6K w - - 0 1", 29, "queen d5 (26, own king blocks h1) + king h1 (3)");
+    check_count("8/P7/8/8/8/8/8/k6K w - - 0 1", 7, "a7 pawn promotes 4 ways + king 3");
+    check_count("R6k/8/7K/8/8/8/8/8 b - - 0 1", 0, "checkmate: black has no moves");
+    check_count("7k/5Q2/6K1/8/8/8/8/8 b - - 0 1", 0, "stalemate: black has no moves");
+
+    std::optional<Board> start = load(START_FEN, "is_legal start");
+    if (start) {
+        check(MoveGenerator::is_legal(*start, *Move::from_uci("e2e4")), "start: e2e4 legal");
+        check(MoveGenerator::is_legal(*start, *Move::from_uci("g1f3")), "start: g1f3 legal");
+        check(!MoveGenerator::is_legal(*start, *Move::from_uci("e2e5")), "start: e2e5 illegal");
+        check(!MoveGenerator::is_legal(*start, *Move::from_uci("e1e2")), "start: e1e2 illegal");
+        check(!MoveGenerator::is_legal(*start, *Move::from_uci("a1a3")), "start: a1a3 illegal");
+        check(!MoveGenerator::is_legal(*start, *Move::from_uci("e7e5")), "start: black pawn can't move on white's turn");
+    }
+
+    std::optional<Board> pinned = load("4k3/4r3/8/8/8/8/8/4R1K1 b - - 0 1", "is_legal pinned");
+    if (pinned) {
+        check(MoveGenerator::is_legal(*pinned, *Move::from_uci("e7e1")), "pinned rook may capture e1");
+        check(!MoveGenerator::is_legal(*pinned, *Move::from_uci("e7a7")), "pinned rook can't leave the file");
+    }
+
+    std::optional<Board> ep = load("rnbqkb1r/ppp1pppp/5n2/3pP3/8/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 3", "is_legal en passant");
+    if (ep) {
+        check(MoveGenerator::is_legal(*ep, *Move::from_uci("e5d6")), "en passant e5d6 legal");
+        check(MoveGenerator::is_legal(*ep, *Move::from_uci("e5f6")), "e5f6 captures the knight");
+    }
+}
+
+static void test_perft() {
+    // No castling is possible this early, so these pass before castling exists
+    check_perft(START_FEN, 1, 20, "perft start depth 1");
+    check_perft(START_FEN, 2, 400, "perft start depth 2");
+    check_perft(START_FEN, 3, 8902, "perft start depth 3");
+    check_perft(START_FEN, 4, 197281, "perft start depth 4");
+
+    // Kiwipete exercises castling, en passant and promotion.
+    // Depth 1 includes 2 castling moves, so expect 46 until castling is added.
+    const std::string kiwipete = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1";
+    check_perft(kiwipete, 1, 48, "perft kiwipete depth 1 (needs castling)");
+    check_perft(kiwipete, 2, 2039, "perft kiwipete depth 2 (needs castling)");
+}
+
 // ---------------------------------------------------------------- Show one move
 
 static void show_move(const std::string& text) {
@@ -300,6 +414,10 @@ int main() {
     test_move();
     test_board_fen();
     test_board_apply();
+    test_is_attacked();
+    test_in_check();
+    test_legal_moves();
+    test_perft();
 
     std::cout << '\n';
     show_move("e2e4");
@@ -309,3 +427,4 @@ int main() {
     std::cout << '\n' << passed << " passed, " << failed << " failed\n";
     return failed == 0 ? 0 : 1;
 }
+

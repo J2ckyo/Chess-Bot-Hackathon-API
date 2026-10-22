@@ -16,7 +16,7 @@ bool MoveGenerator::is_attacked(const Board& board, const Square& square, Piece:
         int new_rank = square.rank + move.second;
         bool is_knight = Square::on_board(new_file, new_rank);
         std::optional<Piece> knight = board.piece_at(Square{new_file, new_rank});
-        if (is_knight && by == knight->colour && knight->colour == Piece::KNIGHT) {
+        if (is_knight && knight && by == knight->colour && knight->kind == Piece::KNIGHT) {
             return true;
         }
     }
@@ -26,7 +26,7 @@ bool MoveGenerator::is_attacked(const Board& board, const Square& square, Piece:
         int new_rank = square.rank + move.second;
         bool is_king = Square::on_board(new_file, new_rank);
         std::optional<Piece> king = board.piece_at(Square{new_file, new_rank});
-        if (is_king && by == king->colour && king->colour == Piece::KING) {
+        if (is_king && king && by == king->colour && king->kind == Piece::KING) {
             return true;
         } 
     }
@@ -102,15 +102,67 @@ bool MoveGenerator::in_check(const Board& board, Piece::Colour colour) {
 
 
 std::vector<Move> MoveGenerator::pseudo_legal(const Board& board) {
+    std::vector<Move> move_list;
+    Piece::Colour turn = board.get_side_to_move();
+    for (int rank = 7; rank >= 0; rank--){
+        for (int file = 0; file <= 7; file++) {
+            Square from{file, rank};
+            std::optional<Piece> piece = board.piece_at(Square{file, rank});
+            if (!piece || piece->colour != turn) {
+                continue;
+            }
 
+            switch (piece->kind) {
+                case Piece::PAWN:
+                    pawn_moves(board, from, turn, move_list);
+                    break;
+                case Piece::KNIGHT:
+                    jump_moves(board, from, turn, Knight, move_list);
+                    break;
+                case Piece::KING:
+                    jump_moves(board, from, turn, King, move_list);
+                    castling_moves(board, turn, move_list);
+                    break;
+                case Piece::BISHOP:
+                    slide_moves(board, from, turn, Bishop, move_list);
+                    break;
+                case Piece::ROOK:
+                    slide_moves(board, from, turn, Rook, move_list);
+                    break;
+                case Piece::QUEEN:
+                    slide_moves(board, from, turn, Rook, move_list);
+                    slide_moves(board, from, turn, Bishop, move_list);
+                    break;
+                default:
+                    break;
+            }
+        }
+    }
+    return move_list;
 }
 
 std::vector<Move> MoveGenerator::legal_moves(const Board& board) {
-
+    std::vector<Move> psudo_moves = pseudo_legal(board);
+    Piece::Colour mover = board.get_side_to_move();
+    std::vector<Move> result;
+    for (const Move& move : psudo_moves) {
+        Board copy = board;
+        copy.apply(move);
+        if (in_check(copy, mover) == false) {
+            result.push_back(move);
+        }
+    }
+    return result;
 }
 
 bool MoveGenerator::is_legal(const Board& board, const Move& move) {
-
+    std::vector<Move> legal = legal_moves(board);
+    for (const Move& pos : legal) {
+        if (move == pos) {
+            return true;
+        }
+    }
+    return false;
 }
 
 std::optional<Square> MoveGenerator::find_king(const Board& board, Piece::Colour colour) {
@@ -213,8 +265,57 @@ void MoveGenerator::pawn_moves(const Board& board, const Square& from, Piece::Co
 
     std::optional<Square> ep = board.get_en_passant();
 
-    
+    for (int file_change : {-1, 1}) {
+        int target_file = from.file + file_change;
+        if (!Square::on_board(forward_rank, target_file)) {
+            continue;
+        }
+
+        Square target{target_file, forward_rank};
+        std::optional<Piece> occupant = board.piece_at(target);
+
+        if (occupant && occupant->colour != colour) {
+            add_pawn_move(target);
+        }
+        else if (ep && target == *ep) {
+            moves.push_back(Move{from, target, std::nullopt});
+        }
+    }
 }
 
+void MoveGenerator::castling_moves(const Board& board, Piece::Colour colour, std::vector<Move>& moves) {
+    int home_rank = colour == Piece::WHITE ? 0 : 7;
+    std::string rights = board.get_castling();
+    
+    if (in_check(board, colour)) {
+        return;
+    }
 
+    char kingside = colour == Piece::WHITE ? 'K' : 'k';
+    char queenside = colour == Piece::WHITE ? 'Q' : 'q';
+    Piece::Colour opponents_colour = Piece::opposite(colour);
+
+    Square e{4, home_rank};
+    Square f{5, home_rank};
+    Square g{6, home_rank};
+
+    Square d{3, home_rank};
+    Square c{2, home_rank};
+    Square b{1, home_rank};
+
+    if (rights.find(kingside) != std::string::npos
+        && !board.piece_at(f)
+        && !board.piece_at(g)
+        && !is_attacked(board, f, opponents_colour)) {
+            moves.push_back(Move{e, g, std::nullopt});
+    }
+
+    if (rights.find(queenside) != std::string::npos
+        && !board.piece_at(d)
+        && !board.piece_at(b)
+        && !board.piece_at(c)
+        && !is_attacked(board, d, opponents_colour)) {
+            moves.push_back(Move{e, c, std::nullopt});
+    }
+}
 

@@ -73,6 +73,10 @@ class MoveGenerator {
          */
         static void pawn_moves(const Board& board, const Square& from, Piece::Colour colour, std::vector<Move>& moves);
 
+        /**
+         * @brief Castling Moves Helper
+         */
+        static void castling_moves(const Board& board, Piece::Colour colour, std::vector<Move>& moves);
 };
 
 #endif

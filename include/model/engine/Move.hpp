@@ -46,6 +46,11 @@ class Move{
          */
         std::string to_uci() const;
 
+        /**
+         * @brief Comparison Constructor
+         * 
+         */
+        bool operator==(const Move&) const = default;
 };
 
 #endif
