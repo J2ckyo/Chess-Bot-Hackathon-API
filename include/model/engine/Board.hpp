@@ -78,6 +78,12 @@ class Board{
          */
         std::optional<Square> get_en_passant() const {return enp_square;}
 
+        /**
+         * @brief Getting function for halfmove
+         * @return halfmove
+         */
+        int get_half_move() const {return halfmove;}
+
     private:
         
         /**
