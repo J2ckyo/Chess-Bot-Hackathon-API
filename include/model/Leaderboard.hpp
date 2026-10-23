@@ -11,6 +11,7 @@
 #include <vector>
 #include <optional>
 #include <mutex>
+#include <cmath>
 
 /**
  * @class Leaderboard
