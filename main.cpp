@@ -15,6 +15,7 @@
 #include "Board.hpp"
 #include "MoveGenerator.hpp"
 #include "Game.hpp"
+#include "BotRegistry.hpp"
 #include <stdexcept>
 
 static int passed = 0;
@@ -488,6 +489,53 @@ static void test_game() {
     }
 }
 
+// ---------------------------------------------------------------- BotRegistry
+
+static void test_bot_registry() {
+    BotRegistry registry;
+
+    // Registering returns a 32-character hex key
+    std::optional<std::string> key_a = registry.register_bot("Alpha");
+    check(key_a.has_value(), "register Alpha returns a key");
+    check(key_a && key_a->size() == 32, "key is 32 characters");
+    check(key_a && key_a->find_first_not_of("0123456789abcdef") == std::string::npos,
+          "key is all hex characters");
+
+    // The key authenticates back to the same bot
+    std::optional<Bot> alpha = key_a ? registry.authenticate(*key_a) : std::nullopt;
+    check(alpha.has_value(), "Alpha's key authenticates");
+    check(alpha && alpha->name == "Alpha", "authenticated bot is named Alpha");
+    check(alpha && alpha->key_hash != *key_a, "the stored hash is not the key itself");
+
+    // Wrong keys fail
+    check(!registry.authenticate("not-a-real-key").has_value(), "wrong key fails");
+    check(!registry.authenticate("").has_value(), "empty key fails");
+
+    // A second bot gets a different id and key
+    std::optional<std::string> key_b = registry.register_bot("Beta");
+    check(key_b.has_value(), "register Beta returns a key");
+    check(key_a && key_b && *key_a != *key_b, "two bots get different keys");
+    std::optional<Bot> beta = key_b ? registry.authenticate(*key_b) : std::nullopt;
+    check(alpha && beta && alpha->id != beta->id, "two bots get different ids");
+    check(beta && beta->name == "Beta", "Beta's key authenticates to Beta, not Alpha");
+
+    // Bad names are rejected
+    check(!registry.register_bot("Alpha").has_value(), "duplicate name rejected");
+    check(!registry.register_bot("").has_value(), "empty name rejected");
+    check(!registry.register_bot(std::string(33, 'x')).has_value(), "33-character name rejected");
+    check(registry.register_bot(std::string(32, 'y')).has_value(), "32-character name accepted");
+
+    // get() by id
+    if (alpha) {
+        std::optional<Bot> found = registry.get(alpha->id);
+        check(found && found->name == "Alpha", "get(Alpha's id) finds Alpha");
+    }
+    check(!registry.get("bot-999").has_value(), "get(unknown id) is empty");
+
+    // all() lists every registered bot (Alpha, Beta, and the 32-character name)
+    check(registry.all().size() == 3, "all() lists 3 bots");
+}
+
 // ---------------------------------------------------------------- Show one move
 
 static void show_move(const std::string& text) {
@@ -517,6 +565,7 @@ int main() {
     test_legal_moves();
     test_perft();
     test_game();
+    test_bot_registry();
 
     std::cout << '\n';
     show_move("e2e4");

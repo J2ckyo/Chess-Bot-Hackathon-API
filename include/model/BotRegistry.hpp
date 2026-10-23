@@ -11,6 +11,8 @@
 #include <optional>
 #include <string>
 #include <vector>
+#include <random>
+#include <algorithm>
 #include "Bot.hpp"
 
 /**
@@ -28,28 +30,28 @@ class BotRegistry {
         /**
          * @brief Returns bot that owns API key
          */
-        std::optional<Bot> authenticate(const std::string& key);
+        std::optional<Bot> authenticate(const std::string& key) const;
 
         /**
          * @brief Returns this bot with id
          */
-        std::optional<Bot> get(const std::string& id);
+        std::optional<Bot> get(const std::string& id) const;
 
         /**
          * @brief Returns a list of all bots
          */
-        std::vector<Bot> all(const std::string& id);
+        std::vector<Bot> all() const;
 
     private:
         /**
          * @brief Every registered bot
          */
-        std::map<std::string, Bot> id;
+        std::map<std::string, Bot> bots_by_id;
 
         /**
          * @brief Maps hash API key to bots ID
          */
-        std::map<std::string, std::string> key_hash;
+        std::map<std::string, std::string> id_by_key_hash;
 
         /**
          * @brief Number for bots ID
