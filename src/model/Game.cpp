@@ -22,9 +22,6 @@ bool Game::try_move(const std::string& uci) {
     if (current_status != IN_PROGRESS) {
         return false;
     }
-    if (!Move::from_uci(uci)) {
-        return false;
-    }
     if (!MoveGenerator::is_legal(board, *move)) {
         return false;
     }
@@ -55,6 +52,7 @@ std::vector<std::string> Game::history_uci() const {
 std::string Game::positions_key() const {
     std::string placement, turn, castling_field, ep_field;
     std::stringstream fields(board.all_to_fen());
+    fields >> placement >> turn >> castling_field >> ep_field;
 
     return placement + " " + turn + " " + castling_field + " " + ep_field;
 }
@@ -65,19 +63,24 @@ void Game::update_status() {
         if (MoveGenerator::in_check(board, side) == true) {
             if (board.get_side_to_move() == Piece::WHITE) {
                 current_status = Status::BLACK_WINS;
+                return;
             } else {
                 current_status = Status::WHITE_WINS;
+                return;
             }
         } else {
             current_status = Status::DRAW;
+            return;
         }
     }
 
     if (board.get_half_move() >= 100) {
         current_status = Status::DRAW;
+        return;
     }
 
     if (positions[positions_key()] >= 3) {
         current_status = Status::DRAW;
+        return;
     }
 }

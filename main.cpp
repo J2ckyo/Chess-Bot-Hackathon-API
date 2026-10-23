@@ -14,6 +14,8 @@
 #include "Move.hpp"
 #include "Board.hpp"
 #include "MoveGenerator.hpp"
+#include "Game.hpp"
+#include <stdexcept>
 
 static int passed = 0;
 static int failed = 0;
@@ -390,6 +392,102 @@ static void test_perft() {
     check_perft(kiwipete, 2, 2039, "perft kiwipete depth 2 (needs castling)");
 }
 
+// ---------------------------------------------------------------- Game
+
+// Plays each move in `moves` (space separated); returns false if any is rejected
+static bool play(Game& game, const std::string& moves) {
+    std::stringstream ss(moves);
+    std::string uci;
+    while (ss >> uci) {
+        if (!game.try_move(uci)) return false;
+    }
+    return true;
+}
+
+static void test_game() {
+    // A new game is in progress
+    {
+        Game game(START_FEN);
+        check(game.status() == Game::IN_PROGRESS, "new game is in progress");
+        check_eq(game.to_fen(), START_FEN, "new game starts at the start position");
+        check(game.history_uci().empty(), "new game has no history");
+    }
+
+    // A bad FEN throws
+    {
+        bool threw = false;
+        try {
+            Game game("not a fen");
+        } catch (const std::invalid_argument&) {
+            threw = true;
+        }
+        check(threw, "bad FEN throws invalid_argument");
+    }
+
+    // Legal moves are accepted and recorded
+    {
+        Game game(START_FEN);
+        check(play(game, "e2e4 e7e5 g1f3"), "e2e4 e7e5 g1f3 accepted");
+        std::vector<std::string> h = game.history_uci();
+        check(h.size() == 3 && h[0] == "e2e4" && h[2] == "g1f3", "history records the moves in order");
+        check(game.status() == Game::IN_PROGRESS, "still in progress after 3 moves");
+    }
+
+    // Illegal and malformed moves are rejected and change nothing
+    {
+        Game game(START_FEN);
+        check(!game.try_move("e2e5"), "e2e5 rejected");
+        check(!game.try_move("e7e5"), "black move on white's turn rejected");
+        check(!game.try_move("zzzz"), "malformed text rejected");
+        check_eq(game.to_fen(), START_FEN, "board unchanged after rejected moves");
+        check(game.history_uci().empty(), "history unchanged after rejected moves");
+    }
+
+    // Fool's mate: black checkmates white
+    {
+        Game game(START_FEN);
+        check(play(game, "f2f3 e7e5 g2g4 d8h4"), "fool's mate moves accepted");
+        check(game.status() == Game::BLACK_WINS, "fool's mate: black wins");
+        check(!game.try_move("a2a3"), "no moves accepted after the game ends");
+    }
+
+    // Scholar's mate: white checkmates black
+    {
+        Game game(START_FEN);
+        check(play(game, "e2e4 e7e5 f1c4 b8c6 d1h5 g8f6 h5f7"), "scholar's mate moves accepted");
+        check(game.status() == Game::WHITE_WINS, "scholar's mate: white wins");
+    }
+
+    // Stalemate
+    {
+        Game game("7k/8/6K1/8/8/8/8/5Q2 w - - 0 1");
+        check(game.try_move("f1f7"), "f1f7 accepted");
+        check(game.status() == Game::DRAW, "stalemate is a draw");
+    }
+
+    // Threefold repetition
+    {
+        Game game(START_FEN);
+        check(play(game, "g1f3 g8f6 f3g1 f6g8"), "first shuffle accepted");
+        check(game.status() == Game::IN_PROGRESS, "start position seen twice: still in progress");
+        check(play(game, "g1f3 g8f6 f3g1 f6g8"), "second shuffle accepted");
+        check(game.status() == Game::DRAW, "start position seen three times: draw");
+    }
+
+    // 50-move rule: halfmove already at 99, one quiet move makes 100
+    {
+        Game game("4k3/8/8/8/8/8/8/4K2R w - - 99 80");
+        check(game.try_move("h1h2"), "quiet rook move accepted");
+        check(game.status() == Game::DRAW, "halfmove 100: draw");
+    }
+
+    // Starting from a position that is already checkmate
+    {
+        Game game("R6k/8/7K/8/8/8/8/8 b - - 0 1");
+        check(game.status() == Game::WHITE_WINS, "game created in checkmate is already over");
+    }
+}
+
 // ---------------------------------------------------------------- Show one move
 
 static void show_move(const std::string& text) {
@@ -418,6 +516,7 @@ int main() {
     test_in_check();
     test_legal_moves();
     test_perft();
+    test_game();
 
     std::cout << '\n';
     show_move("e2e4");
@@ -427,4 +526,3 @@ int main() {
     std::cout << '\n' << passed << " passed, " << failed << " failed\n";
     return failed == 0 ? 0 : 1;
 }
-
