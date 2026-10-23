@@ -16,6 +16,8 @@
 #include "MoveGenerator.hpp"
 #include "Game.hpp"
 #include "BotRegistry.hpp"
+#include "Leaderboard.hpp"
+#include <cmath>
 #include <stdexcept>
 
 static int passed = 0;
@@ -536,6 +538,94 @@ static void test_bot_registry() {
     check(registry.all().size() == 3, "all() lists 3 bots");
 }
 
+// ---------------------------------------------------------------- Leaderboard
+
+static bool near(double a, double b) {
+    return std::fabs(a - b) < 0.01;
+}
+
+static void test_leaderboard() {
+    // Equal bots, white wins: +16 / -16
+    {
+        Leaderboard board;
+        board.record("w", "b", Leaderboard::WHITE_WINS);
+        std::optional<Leaderboard::Rating> w = board.get("w");
+        std::optional<Leaderboard::Rating> b = board.get("b");
+        check(w && near(w->rating, 1216), "equal bots: winner goes to 1216");
+        check(b && near(b->rating, 1184), "equal bots: loser goes to 1184");
+        check(w && w->wins == 1 && w->losses == 0 && w->draws == 0, "winner: 1 win");
+        check(b && b->wins == 0 && b->losses == 1 && b->draws == 0, "loser: 1 loss");
+        check(w && w->bot_id == "w", "entry remembers its bot id");
+    }
+
+    // Equal bots, black wins: the mirror image
+    {
+        Leaderboard board;
+        board.record("w", "b", Leaderboard::BLACK_WINS);
+        std::optional<Leaderboard::Rating> w = board.get("w");
+        std::optional<Leaderboard::Rating> b = board.get("b");
+        check(w && near(w->rating, 1184), "black wins: white goes to 1184");
+        check(b && near(b->rating, 1216), "black wins: black goes to 1216");
+    }
+
+    // Equal bots draw: no change
+    {
+        Leaderboard board;
+        board.record("w", "b", Leaderboard::DRAW);
+        std::optional<Leaderboard::Rating> w = board.get("w");
+        std::optional<Leaderboard::Rating> b = board.get("b");
+        check(w && near(w->rating, 1200) && w->draws == 1, "draw: white stays 1200, 1 draw");
+        check(b && near(b->rating, 1200) && b->draws == 1, "draw: black stays 1200, 1 draw");
+    }
+
+    // Beating a weaker bot gains less than 16
+    {
+        Leaderboard board;
+        board.record("strong", "weak", Leaderboard::WHITE_WINS);   // strong 1216, weak 1184
+        board.record("strong", "other", Leaderboard::WHITE_WINS);  // strong (1216) beats a 1200 bot
+        std::optional<Leaderboard::Rating> s = board.get("strong");
+        check(s && s->rating > 1216 && s->rating < 1232, "beating a weaker bot gains less than 16");
+        check(s && s->wins == 2, "strong has 2 wins");
+    }
+
+    // Ratings always add up: what one gains, the other loses
+    {
+        Leaderboard board;
+        board.record("a", "b", Leaderboard::WHITE_WINS);
+        board.record("a", "c", Leaderboard::DRAW);
+        board.record("c", "b", Leaderboard::BLACK_WINS);
+        double total = 0;
+        for (const Leaderboard::Rating& r : board.top(10)) total += r.rating;
+        check(near(total, 3600), "total rating stays 3 x 1200");
+    }
+
+    // top(n): sorted highest first, limited to n
+    {
+        Leaderboard board;
+        board.record("x", "y", Leaderboard::WHITE_WINS);
+        board.record("x", "z", Leaderboard::WHITE_WINS);
+        board.record("z", "y", Leaderboard::WHITE_WINS);
+        std::vector<Leaderboard::Rating> all = board.top(10);
+        check(all.size() == 3, "top(10) with 3 bots returns 3");
+        check(all.size() == 3 && all[0].bot_id == "x" && all[2].bot_id == "y",
+              "top: x first, y last");
+        bool sorted = true;
+        for (std::size_t i = 1; i < all.size(); ++i) {
+            if (all[i - 1].rating < all[i].rating) sorted = false;
+        }
+        check(sorted, "top is sorted highest first");
+        check(board.top(1).size() == 1, "top(1) returns 1");
+        check(board.top(0).empty(), "top(0) returns none");
+    }
+
+    // Unknown bot
+    {
+        Leaderboard board;
+        check(!board.get("nobody").has_value(), "get(unknown) is empty");
+        check(board.top(5).empty(), "empty leaderboard: top is empty");
+    }
+}
+
 // ---------------------------------------------------------------- Show one move
 
 static void show_move(const std::string& text) {
@@ -566,6 +656,7 @@ int main() {
     test_perft();
     test_game();
     test_bot_registry();
+    test_leaderboard();
 
     std::cout << '\n';
     show_move("e2e4");

@@ -12,6 +12,7 @@
 #include <optional>
 #include <mutex>
 #include <cmath>
+#include <algorithm>
 
 /**
  * @class Leaderboard
@@ -43,13 +44,13 @@ class Leaderboard {
          * @brief Records match results
          * 
          */
-        void record(std::string& white_id, std::string& black_id, Status result);
+        void record(const std::string& white_id, const std::string& black_id, Status result);
         
         /**
          * @brief Organizes Records
          * 
          */
-        std::vector<Rating> top(const int n);
+        std::vector<Rating> top(const int n) const;
 
         /**
          * @brief Bot lookup
