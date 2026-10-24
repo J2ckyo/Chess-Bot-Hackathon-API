@@ -84,6 +84,12 @@ class Board{
          */
         int get_half_move() const {return halfmove;}
 
+        /**
+         * @brief Starting FEN for all games
+         * 
+         */
+        static inline const std::string START_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+
     private:
         
         /**

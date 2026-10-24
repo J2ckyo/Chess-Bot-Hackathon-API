@@ -32,7 +32,7 @@ class Game {
         /**
          * @brief Game Constructor
          */
-        Game(const std::string& fen);
+        Game(const std::string& fen = Board::START_FEN);
 
         /**
          * @brief Tries a move
@@ -54,6 +54,8 @@ class Game {
          * @brief
          */
         std::vector<std::string> history_uci() const;
+
+        Piece::Colour side_to_move() const {return board.get_side_to_move();}
 
     private:
         /**
@@ -89,3 +91,4 @@ class Game {
 };
 
 #endif
+
