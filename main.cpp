@@ -17,6 +17,7 @@
 #include "Game.hpp"
 #include "BotRegistry.hpp"
 #include "Leaderboard.hpp"
+#include "GameController.hpp"
 #include <cmath>
 #include <stdexcept>
 
@@ -626,6 +627,103 @@ static void test_leaderboard() {
     }
 }
 
+// ---------------------------------------------------------------- GameController
+
+static void test_game_controller() {
+    BotRegistry registry;
+    Leaderboard leaderboard;
+    GameController controller(registry, leaderboard);
+
+    // Three bots: Alice and Bob will play, Eve is an outsider
+    std::string alice_key = registry.register_bot("Alice").value_or("");
+    std::string bob_key   = registry.register_bot("Bob").value_or("");
+    std::string eve_key   = registry.register_bot("Eve").value_or("");
+    std::optional<Bot> alice = registry.authenticate(alice_key);
+    std::optional<Bot> bob   = registry.authenticate(bob_key);
+    if (!alice || !bob) {
+        check(false, "controller setup: could not register bots");
+        return;
+    }
+
+    // ---- start_game
+    std::optional<std::string> game = controller.start_game(alice->id, bob->id);
+    check(game.has_value(), "start_game with two real bots returns an id");
+    check(!controller.start_game(alice->id, "bot-999").has_value(), "start_game with an unknown bot fails");
+    check(!controller.start_game(alice->id, alice->id).has_value(), "start_game against itself fails");
+    std::optional<std::string> game2 = controller.start_game(bob->id, alice->id);
+    check(game && game2 && *game != *game2, "two games get different ids");
+    if (!game) return;
+
+    // ---- get_state
+    GameState w = controller.get_state(*game, alice_key);
+    check(w.ok, "get_state as white succeeds");
+    check(w.your_colour == "white", "Alice is white");
+    check_eq(w.fen, START_FEN, "new game is at the start position");
+    check(w.status == "in_progress", "new game status is in_progress");
+    check(w.moves.empty(), "new game has no moves");
+    check(w.game_id == *game, "state carries the game id");
+
+    GameState b = controller.get_state(*game, bob_key);
+    check(b.ok && b.your_colour == "black", "Bob is black");
+
+    GameState bad = controller.get_state(*game, "not-a-key");
+    check(!bad.ok && bad.error == GameState::BAD_KEY, "get_state with a bad key: BAD_KEY");
+
+    GameState missing = controller.get_state("game-999", alice_key);
+    check(!missing.ok && missing.error == GameState::GAME_NOT_FOUND, "get_state for an unknown game: GAME_NOT_FOUND");
+
+    GameState outsider = controller.get_state(*game, eve_key);
+    check(!outsider.ok && outsider.error == GameState::NOT_A_PLAYER, "get_state as an outsider: NOT_A_PLAYER");
+
+    // ---- make_move: turns, legality, permissions
+    GameState early = controller.make_move(*game, bob_key, "e7e5");
+    check(!early.ok && early.error == GameState::NOT_YOUR_TURN, "black can't move first: NOT_YOUR_TURN");
+
+    GameState e4 = controller.make_move(*game, alice_key, "e2e4");
+    check(e4.ok, "white plays e2e4");
+    check_eq(e4.fen, "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1", "FEN after e2e4");
+    check(e4.moves.size() == 1 && e4.moves[0] == "e2e4", "history shows e2e4");
+
+    GameState twice = controller.make_move(*game, alice_key, "d2d4");
+    check(!twice.ok && twice.error == GameState::NOT_YOUR_TURN, "white can't move twice: NOT_YOUR_TURN");
+
+    GameState illegal = controller.make_move(*game, bob_key, "e7e4");
+    check(!illegal.ok && illegal.error == GameState::ILLEGAL_MOVE, "e7e4 is illegal: ILLEGAL_MOVE");
+
+    GameState garbage = controller.make_move(*game, bob_key, "hello");
+    check(!garbage.ok && garbage.error == GameState::ILLEGAL_MOVE, "malformed move: ILLEGAL_MOVE");
+
+    GameState eve_move = controller.make_move(*game, eve_key, "e7e5");
+    check(!eve_move.ok && eve_move.error == GameState::NOT_A_PLAYER, "outsider can't move: NOT_A_PLAYER");
+
+    GameState bad_key_move = controller.make_move(*game, "not-a-key", "e7e5");
+    check(!bad_key_move.ok && bad_key_move.error == GameState::BAD_KEY, "bad key can't move: BAD_KEY");
+
+    GameState after_errors = controller.get_state(*game, alice_key);
+    check(after_errors.moves.size() == 1, "rejected moves don't change the game");
+
+    // ---- A full game: fool's mate, then the result is recorded once
+    std::optional<std::string> mate = controller.start_game(alice->id, bob->id);
+    if (!mate) return;
+    controller.make_move(*mate, alice_key, "f2f3");
+    controller.make_move(*mate, bob_key,   "e7e5");
+    controller.make_move(*mate, alice_key, "g2g4");
+    GameState final_state = controller.make_move(*mate, bob_key, "d8h4");
+    check(final_state.ok, "the mating move succeeds");
+    check(final_state.status == "black_wins", "fool's mate: status is black_wins");
+
+    GameState after = controller.make_move(*mate, alice_key, "a2a3");
+    check(!after.ok && after.error == GameState::GAME_OVER, "no moves after the game ends: GAME_OVER");
+
+    std::optional<Leaderboard::Rating> alice_rating = leaderboard.get(alice->id);
+    std::optional<Leaderboard::Rating> bob_rating   = leaderboard.get(bob->id);
+    check(bob_rating && bob_rating->wins == 1 && near(bob_rating->rating, 1216), "leaderboard: Bob won, 1216");
+    check(alice_rating && alice_rating->losses == 1 && near(alice_rating->rating, 1184), "leaderboard: Alice lost, 1184");
+
+    GameState viewed = controller.get_state(*mate, alice_key);
+    check(viewed.ok && viewed.status == "black_wins", "a finished game can still be viewed");
+}
+
 // ---------------------------------------------------------------- Show one move
 
 static void show_move(const std::string& text) {
@@ -657,6 +755,7 @@ int main() {
     test_game();
     test_bot_registry();
     test_leaderboard();
+    test_game_controller();
 
     std::cout << '\n';
     show_move("e2e4");

@@ -36,18 +36,71 @@ GameState GameController::get_state(const std::string& game_id, const std::strin
 
     std::lock_guard<std::mutex> guard(match->lock);
 
-    if (bot->id != match->black_id || bot->id != match->white_id) {
+    if (bot->id != match->black_id && bot->id != match->white_id) {
         return make_error(gamestate.NOT_A_PLAYER, "Couldn't find a player");
     }
     return build_state(*match, game_id, *bot);
 }
 
 GameState GameController::make_move(const std::string& game_id, const std::string& api_key, const std::string& uci) {
+    GameState gamestate;
+    Piece::Colour colour;
+    std::optional<Bot> bot = registry.authenticate(api_key);
+    Match* match = find_match(game_id);
+    if (!bot) {
+        return make_error(gamestate.BAD_KEY, "Bad API Key");
+    }
 
+    if (match == nullptr) {
+        return make_error(gamestate.GAME_NOT_FOUND, "Couldn't find a game");
+    }
+
+    std::lock_guard<std::mutex> guard(match->lock);
+
+    if (bot->id != match->black_id && bot->id != match->white_id) {
+        return make_error(gamestate.NOT_A_PLAYER, "Couldn't find a player");
+    }
+
+    if  (match->game.status() != Game::IN_PROGRESS) {
+        return make_error(gamestate.GAME_OVER, "Game Over!");
+    }
+
+    if (bot->id == match->white_id) {
+        colour = Piece::WHITE;
+    } else {
+        colour = Piece::BLACK;
+    }
+
+    if (match->game.side_to_move() != colour) {
+        return make_error(gamestate.NOT_YOUR_TURN, "Its not your turn");
+    }
+
+    if (!match->game.try_move(uci)) {
+        return make_error(gamestate.ILLEGAL_MOVE, "Can't make that move");
+    }
+
+    if (match->game.status() != Game::IN_PROGRESS) {
+        finish(*match);
+    }
+    return build_state(*match, game_id, *bot);
 }
 
 void GameController::finish(Match& match) {
-
+    Leaderboard::Status result;
+    switch (match.game.status()) {
+        case Game::BLACK_WINS:
+            result = Leaderboard::BLACK_WINS;
+            break;
+        case Game::WHITE_WINS:
+            result = Leaderboard::WHITE_WINS;
+            break;
+        case Game::DRAW:
+            result = Leaderboard::DRAW;
+            break;
+        case Game::IN_PROGRESS:
+            return;
+    }
+    leaderboard.record(match.white_id, match.black_id, result);
 }
 
 GameState GameController::build_state(const Match& match, const std::string& game_id, const Bot& bot) const {
@@ -67,18 +120,19 @@ GameState GameController::build_state(const Match& match, const std::string& gam
 
     switch(match.game.status()) {
         case Game::IN_PROGRESS:
-            gamestate.status = "In_Progess";
+            gamestate.status = "in_progress";
             break;
         case Game::WHITE_WINS:
-            gamestate.status = "White_Wins";
+            gamestate.status = "white_wins";
             break;
         case Game::BLACK_WINS:
-            gamestate.status = "Black_Wins";
+            gamestate.status = "black_wins";
             break;
         case Game::DRAW:
-            gamestate.status = "Draw";
+            gamestate.status = "draw";
             break;
     }
+    return gamestate;
 }
 
 GameController::Match* GameController::find_match(const std::string& game_id) {
