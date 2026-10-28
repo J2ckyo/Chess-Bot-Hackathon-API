@@ -6,6 +6,7 @@
 #ifndef APIROUTES_HPP
 #define APIROUTES_HPP
 
+#include <cmath>
 #include "crow.h"
 #include "GameController.hpp"
 #include "BotRegistry.hpp"
