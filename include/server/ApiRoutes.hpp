@@ -11,6 +11,7 @@
 #include "GameController.hpp"
 #include "BotRegistry.hpp"
 #include "Leaderboard.hpp"
+#include "TournamentManager.hpp"
 
 class ApiRoutes {
     public:
@@ -29,14 +30,15 @@ class ApiRoutes {
          * @param registry 
          * @param leaderboard 
          */
-        ApiRoutes(GameController& gamecontroller, BotRegistry& registry, Leaderboard& leaderboard, const std::string& admin_key) :
-            gamecontroller(gamecontroller), registry(registry), leaderboard(leaderboard), admin_key(admin_key) {};
+        ApiRoutes(GameController& gamecontroller, BotRegistry& registry, Leaderboard& leaderboard, TournamentManager& manager, const std::string& admin_key) :
+            gamecontroller(gamecontroller), registry(registry), leaderboard(leaderboard), manager(manager), admin_key(admin_key) {};
 
     private:
     
         GameController& gamecontroller;
         BotRegistry& registry;
         Leaderboard& leaderboard;
+        TournamentManager& manager;
         std::string admin_key;
 
         /**

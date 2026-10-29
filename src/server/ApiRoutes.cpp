@@ -33,6 +33,9 @@ void ApiRoutes::register_routes(crow::SimpleApp& app) {
     CROW_ROUTE(app, "/api/games")
     .methods(crow::HTTPMethod::POST)([this](const crow::request& req){
         auto body = crow::json::load(req.body);
+        if (!is_admin) {
+            return crow::response(403, "");
+        }
         if (!body || !body.has("white_id") || !body.has("black_id")) {
             return crow::response(400, "Missing or Invalid White/Black ID");
         }
@@ -108,6 +111,44 @@ void ApiRoutes::register_routes(crow::SimpleApp& app) {
         reply["games"] = std::move(result);
         return crow::response(200, reply);
 
+    });
+
+    CROW_ROUTE(app, "/api/tournament/start")
+    .methods(crow::HTTPMethod::POST)([this](const crow::request& req){
+        auto body = crow::json::load(req.body);
+        crow::json::wvalue reply;
+        // TournamentManager manager;
+        if (!is_admin(req)) {
+            return crow::response(403, "Not admin");
+        }
+
+        if (manager.create_schedule() == false) {
+            return crow::response(400, "Need 2 registered bots");
+        }
+        manager.start_round();
+        int total_rounds = std::lround(manager.total_rounds());
+        return crow::response(200, std::to_string(total_rounds));
+    });
+
+    CROW_ROUTE(app, "/api/tournament/next")
+    .methods(crow::HTTPMethod::POST)([this](const crow::request& req){
+        auto body = crow::json::load(req.body);
+        crow::json::wvalue reply;
+        // TournamentManager manager;
+        if (!is_admin(req)) {
+            return crow::response(403, "Not admin");
+        }
+
+        if (manager.round_finished() == false) {
+            return crow::response(409, "Current round still in prograss");
+        }
+
+        if (manager.next_round() == false) {
+            bool finished = manager.round_finished();
+            return crow::response(200, std::to_string(finished));
+        }
+        int total_rounds = std::lround(manager.total_rounds());
+        return crow::response(200, std::to_string(total_rounds));
     });
 }
 

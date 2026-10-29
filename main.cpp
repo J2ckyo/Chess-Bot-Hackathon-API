@@ -5,6 +5,7 @@
 #include "BotRegistry.hpp"
 #include "Leaderboard.hpp"
 #include "GameController.hpp"
+#include "TournamentManager.hpp"
 
 using namespace std;
 
@@ -20,7 +21,8 @@ int main() {
     BotRegistry registry;
     Leaderboard leaderboard;
     GameController gamecontroller(registry, leaderboard);
-    ApiRoutes routes(gamecontroller, registry, leaderboard, admin_key);
+    TournamentManager manager(gamecontroller, registry);
+    ApiRoutes routes(gamecontroller, registry, leaderboard, manager, admin_key);
 
     crow::SimpleApp app;
     routes.register_routes(app);
