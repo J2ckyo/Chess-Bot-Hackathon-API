@@ -167,7 +167,7 @@ std::vector<std::string> GameController::games_for_bot(const std::string& bot_id
     std::vector<std::string> result;
     for (auto& [id, match] : games) {
         if (match->white_id == bot_id || match->black_id == bot_id) {
-            std::lock_guard<std::mutex> guard(match->lock);
+            std::lock_guard<std::mutex> match_guard(match->lock);
             if (match->game.status() == Game::IN_PROGRESS) {
                 result.push_back(id);
             }
