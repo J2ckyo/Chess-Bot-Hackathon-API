@@ -29,14 +29,15 @@ class ApiRoutes {
          * @param registry 
          * @param leaderboard 
          */
-        ApiRoutes(GameController& gamecontroller, BotRegistry& registry, Leaderboard& leaderboard) :
-            gamecontroller(gamecontroller), registry(registry), leaderboard(leaderboard) {};
+        ApiRoutes(GameController& gamecontroller, BotRegistry& registry, Leaderboard& leaderboard, const std::string& admin_key) :
+            gamecontroller(gamecontroller), registry(registry), leaderboard(leaderboard), admin_key(admin_key) {};
 
     private:
     
         GameController& gamecontroller;
         BotRegistry& registry;
         Leaderboard& leaderboard;
+        std::string admin_key;
 
         /**
          * @brief Adds every API endpoint to app
@@ -45,6 +46,15 @@ class ApiRoutes {
          * @return crow::response 
          */
         crow::response to_response(const GameState& gamestate) const;
+
+        /**
+         * @brief Returns if header xadminkey is == admin_key
+         * 
+         * @param req 
+         * @return true 
+         * @return false 
+         */
+        bool is_admin(const crow::request& req) const;
 };
 
 

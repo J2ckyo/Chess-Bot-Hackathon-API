@@ -156,3 +156,6 @@ crow::response ApiRoutes::to_response(const GameState& gamestate) const {
     return crow::response(code, body);
 }
 
+bool ApiRoutes::is_admin(const crow::request& req) const {
+    return req.get_header_value("X-ADMIN-KEY") == admin_key;
+}
