@@ -152,4 +152,26 @@ GameState GameController::make_error(GameState::Error error, const std::string& 
     return gamestate;
 }
 
+std::optional<Game::Status> GameController::game_status(const std::string& game_id) {
+    if (find_match(game_id) == nullptr) {
+        return std::nullopt;
+    }
+    Match* match = find_match(game_id);
+    std::lock_guard<std::mutex> guard(match->lock);
+    return match->game.status();
+}
 
+
+std::vector<std::string> GameController::games_for_bot(const std::string& bot_id){
+    std::lock_guard<std::mutex> guard(games_lock);
+    std::vector<std::string> result;
+    for (auto& [id, match] : games) {
+        if (match->white_id == bot_id || match->black_id == bot_id) {
+            std::lock_guard<std::mutex> guard(match->lock);
+            if (match->game.status() == Game::IN_PROGRESS) {
+                result.push_back(id);
+            }
+        } 
+    }
+    return result;
+}

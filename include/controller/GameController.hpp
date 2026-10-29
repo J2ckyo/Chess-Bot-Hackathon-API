@@ -56,6 +56,19 @@ class GameController {
          */
         GameState make_move(const std::string& game_id, const std::string& api_key, const std::string& uci);
 
+        /**
+         * @brief Returns the match status
+         * 
+         * @return std::optional<Game::Status> 
+         */
+        std::optional<Game::Status> game_status(const std::string& game_id);
+
+        /**
+         * @brief Returns IDS for games this bot is playing
+         * 
+         * @return std::vector<std::string> 
+         */
+        std::vector<std::string> games_for_bot(const std::string& bot_id);
 
         private:
             struct Match {

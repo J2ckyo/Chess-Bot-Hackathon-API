@@ -89,6 +89,17 @@ void ApiRoutes::register_routes(crow::SimpleApp& app) {
         return crow::response(200, reply);
 
     });
+
+    CROW_ROUTE(app, "/api/my-games")
+    .methods(crow::HTTPMethod::GET)([this](const crow::request& req){
+        std::string key = req.get_header_value("X-API-KEY");
+        auto auth_key = registry.authenticate(key);
+        if (!auth_key) {
+            return crow::response(401, "No auth key");
+        }
+
+        gamecontroller.games_for_bot(bot->id);
+    });
 }
 
 crow::response ApiRoutes::to_response(const GameState& gamestate) const {
