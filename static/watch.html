@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Chess Bot Viewer</title>
+<style>
+  body { font-family: monospace; background: #000; color: #0f0; margin: 20px; }
+  a { color: #0f0; }
+  pre { font-size: 18px; line-height: 1.2; margin: 0; }
+</style>
+</head>
+<body>
+<pre id="games">Loading games...</pre>
+<pre id="view"></pre>
+
+<script>
+const POLL_MS = 500;
+let selected = new URLSearchParams(location.search).get("game");
+
+// List every game as a clickable line
+async function loadGames() {
+  const out = document.getElementById("games");
+  try {
+    const data = await (await fetch("/api/games")).json();
+    if (!data.games || data.games.length === 0) {
+      out.textContent = "No games yet.\n";
+      return;
+    }
+    if (!selected) selected = data.games[data.games.length - 1].game_id;
+
+    let html = "GAMES\n";
+    for (const g of data.games) {
+      const mark = g.game_id === selected ? ">" : " ";
+      html += `${mark} <a href="?game=${g.game_id}">${g.game_id}</a>  ${g.status}\n`;
+    }
+    out.innerHTML = html + "\n";
+  } catch (e) {
+    out.textContent = "Server not reachable.\n";
+  }
+}
+
+// FEN placement -> 8 rows of 8 characters, rank 8 first, "." for empty
+function parseFen(fen) {
+  return fen.split(" ")[0].split("/").map(row => {
+    let cells = "";
+    for (const c of row) cells += (c >= "1" && c <= "8") ? ".".repeat(Number(c)) : c;
+    return cells;
+  });
+}
+
+// Draws the board in plain ASCII; the last move's squares are shown as [x]
+function drawBoard(fen, lastMove) {
+  const rows = parseFen(fen);
+  const files = "abcdefgh";
+  const marked = lastMove ? [lastMove.slice(0, 2), lastMove.slice(2, 4)] : [];
+  const line = "  +" + "---+".repeat(8) + "\n";
+
+  let text = line;
+  for (let r = 0; r < 8; r++) {
+    const rank = 8 - r;
+    text += rank + " |";
+    for (let f = 0; f < 8; f++) {
+      const piece = rows[r][f] === "." ? " " : rows[r][f];
+      const hit = marked.includes(files[f] + rank);
+      text += (hit ? "[" + piece + "]" : " " + piece + " ") + "|";
+    }
+    text += "\n" + line;
+  }
+  text += "    " + files.split("").join("   ") + "\n";
+  return text;
+}
+
+async function loadGame() {
+  const out = document.getElementById("view");
+  if (!selected) return;
+  try {
+    const res = await fetch(`/api/games/${encodeURIComponent(selected)}/watch`);
+    if (!res.ok) {
+      out.textContent = `Could not load ${selected} (${res.status})`;
+      return;
+    }
+    const g = await res.json();
+    const last = g.moves.length ? g.moves[g.moves.length - 1] : null;
+
+    out.textContent =
+      `${g.game_id}   White: ${g.white_id}   Black: ${g.black_id}\n` +
+      `Status: ${g.status}   Moves: ${g.moves.length}\n\n` +
+      drawBoard(g.fen, last) + "\n" +
+      `FEN: ${g.fen}\n` +
+      `Moves: ${g.moves.join(" ")}\n`;
+  } catch (e) {
+    out.textContent = "Server not reachable.";
+  }
+}
+
+loadGames();
+loadGame();
+setInterval(loadGame, POLL_MS);
+setInterval(loadGames, POLL_MS * 4);
+</script>
+</body>
+</html>
