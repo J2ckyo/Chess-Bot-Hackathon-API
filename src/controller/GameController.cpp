@@ -118,20 +118,7 @@ GameState GameController::build_state(const Match& match, const std::string& gam
         gamestate.your_colour = "black";
     }
 
-    switch(match.game.status()) {
-        case Game::IN_PROGRESS:
-            gamestate.status = "in_progress";
-            break;
-        case Game::WHITE_WINS:
-            gamestate.status = "white_wins";
-            break;
-        case Game::BLACK_WINS:
-            gamestate.status = "black_wins";
-            break;
-        case Game::DRAW:
-            gamestate.status = "draw";
-            break;
-    }
+    gamestate.status = status_text(match.game.status());
     return gamestate;
 }
 
@@ -172,6 +159,62 @@ std::vector<std::string> GameController::games_for_bot(const std::string& bot_id
                 result.push_back(id);
             }
         } 
+    }
+    return result;
+}
+
+GameState GameController::spectate(const std::string& game_id) {
+    GameState gamestate;
+    Match* match = find_match(game_id);
+
+    if (match == nullptr) {
+        return make_error(gamestate.GAME_NOT_FOUND, "Couldn't find a game");
+    }
+
+    std::lock_guard<std::mutex> guard(match->lock);
+    
+
+    gamestate.ok = true;
+    gamestate.fen = match->game.to_fen();
+    gamestate.moves = match->game.history_uci();
+    gamestate.status = status_text(match->game.status());
+
+    gamestate.game_id = game_id;
+    gamestate.white_id = match->white_id;
+    gamestate.black_id = match->black_id;
+
+    return gamestate;
+}
+
+std::string GameController::status_text(Game::Status status) {
+
+    switch(status) {
+        case Game::IN_PROGRESS:
+            return "in_progress";
+        case Game::WHITE_WINS:
+            return "white_wins";
+        case Game::BLACK_WINS:
+            return "black_wins";
+        case Game::DRAW:
+            return "draw";
+        default:
+            break;
+    }
+    return "unknown";
+}
+
+
+std::vector<GameState> GameController::all_games() {
+    std::lock_guard<std::mutex> guard(games_lock);
+    std::vector<GameState> result;
+    for (auto& [id, match] : games) {
+        std::lock_guard<std::mutex> match_guard(match->lock);
+        GameState state;
+        state.game_id = id;
+        state.white_id = match->white_id;
+        state.black_id = match->black_id;
+        state.status = status_text(match->game.status());
+        result.push_back(state);
     }
     return result;
 }

@@ -47,6 +47,21 @@ class GameController {
         GameState get_state(const std::string& game_id, const std::string& api_key);
 
         /**
+         * @brief Spectators Gamestate
+         * 
+         * @param game_id 
+         * @return GameState 
+         */
+        GameState spectate(const std::string& game_id);
+
+        /**
+         * @brief All games
+         * 
+         * @return GameState 
+         */
+        std::vector<GameState> all_games();
+
+        /**
          * @brief Makes a move
          * 
          * @param game_id 
@@ -143,6 +158,13 @@ class GameController {
              */
             static GameState make_error(GameState::Error error, const std::string& message);
 
+            /**
+             * @brief Turns status enum into string
+             * 
+             * @param status 
+             * @return std::string 
+             */
+            static std::string status_text(Game::Status status);
 };
 
 #endif

@@ -54,10 +54,47 @@ void ApiRoutes::register_routes(crow::SimpleApp& app) {
 
     });
 
+    CROW_ROUTE(app, "/api/games")
+    .methods(crow::HTTPMethod::GET)([this](const crow::request&){
+        crow::json::wvalue::list result;
+        std::vector<GameState> all_games = gamecontroller.all_games();
+
+        for (auto& state : all_games) {
+            crow::json::wvalue entry;
+            entry["game_id"] = state.game_id;
+            entry["white_id"] = state.white_id;
+            entry["black_id"] = state.black_id;
+            entry["status"] = state.status;
+            result.push_back(std::move(entry));
+        }
+
+        crow::json::wvalue reply;
+        reply["games"] = std::move(result);
+        return crow::response(200, reply);
+    });
+
     CROW_ROUTE(app, "/api/games/<string>")
     .methods(crow::HTTPMethod::GET)([this](const crow::request& req, std::string game_id){
         std::string key = req.get_header_value("X-API-KEY");
         return to_response(gamecontroller.get_state(game_id, key));
+    });
+
+    CROW_ROUTE(app, "/api/games/<string>/watch")
+    .methods(crow::HTTPMethod::GET)([this](const crow::request&, std::string game_id){
+        GameState state = gamecontroller.spectate(game_id);
+        if (!state.ok) {
+            return crow::response(404, "Cannot watch");
+        }
+
+        crow::json::wvalue reply;
+        reply["game_id"] = state.game_id;
+        reply["white_id"] = state.white_id;
+        reply["black_id"] = state.black_id;
+        reply["fen"] = state.fen;
+        reply["status"] = state.status;
+        reply["moves"] = state.moves;
+
+        return crow::response(200, reply);
     });
 
     CROW_ROUTE(app, "/api/games/<string>/move")

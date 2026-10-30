@@ -88,6 +88,7 @@ class Game {
          */
 
         void update_status();
+
 };
 
 #endif

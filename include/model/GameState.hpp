@@ -69,6 +69,18 @@ class GameState {
          */
         std::vector<std::string> moves;
 
+        /**
+         * @brief 
+         * 
+         */
+        std::string white_id;
+
+        /**
+         * @brief 
+         * 
+         */
+        std::string black_id;
+
 };
 
 #endif
