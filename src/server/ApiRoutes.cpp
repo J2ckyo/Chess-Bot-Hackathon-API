@@ -33,8 +33,8 @@ void ApiRoutes::register_routes(crow::SimpleApp& app) {
     CROW_ROUTE(app, "/api/games")
     .methods(crow::HTTPMethod::POST)([this](const crow::request& req){
         auto body = crow::json::load(req.body);
-        if (!is_admin) {
-            return crow::response(403, "");
+        if (!is_admin(req)) {
+            return crow::response(403, "Not admin");
         }
         if (!body || !body.has("white_id") || !body.has("black_id")) {
             return crow::response(400, "Missing or Invalid White/Black ID");
@@ -113,6 +113,33 @@ void ApiRoutes::register_routes(crow::SimpleApp& app) {
 
     });
 
+    CROW_ROUTE(app, "/api/tournament")
+    .methods(crow::HTTPMethod::GET)([this](const crow::request& req){
+        crow::json::wvalue reply;
+        crow::json::wvalue::list result;
+
+        reply["round"] = manager.round_number();
+        reply["total_rounds"] = manager.total_rounds();
+
+        std::vector<TournamentManager::Pairing> pair = manager.current_round();
+
+        for (auto& pairing : pair) {
+            crow::json::wvalue entry;
+            entry["white_id"] = pairing.white_id;
+            entry["black_id"] = pairing.black_id;
+            if (!pairing.game_id) {
+                entry["game_id"] = nullptr;
+            } else {
+                entry["game_id"] = *pairing.game_id;
+            }
+
+            result.push_back(std::move(entry));
+        }
+
+        reply["pairings"] = std::move(result);
+        return crow::response(200, reply);
+    });
+
     CROW_ROUTE(app, "/api/tournament/start")
     .methods(crow::HTTPMethod::POST)([this](const crow::request& req){
         auto body = crow::json::load(req.body);
@@ -126,8 +153,9 @@ void ApiRoutes::register_routes(crow::SimpleApp& app) {
             return crow::response(400, "Need 2 registered bots");
         }
         manager.start_round();
-        int total_rounds = std::lround(manager.total_rounds());
-        return crow::response(200, std::to_string(total_rounds));
+        reply["round"] = manager.round_number();
+        reply["total_rounds"] = manager.total_rounds();
+        return crow::response(200, reply);
     });
 
     CROW_ROUTE(app, "/api/tournament/next")
@@ -140,15 +168,16 @@ void ApiRoutes::register_routes(crow::SimpleApp& app) {
         }
 
         if (manager.round_finished() == false) {
-            return crow::response(409, "Current round still in prograss");
+            return crow::response(409, "Current round still in progress");
         }
 
         if (manager.next_round() == false) {
-            bool finished = manager.round_finished();
-            return crow::response(200, std::to_string(finished));
+            reply["finished"] = true;
+            return crow::response(200, reply);
         }
-        int total_rounds = std::lround(manager.total_rounds());
-        return crow::response(200, std::to_string(total_rounds));
+        reply["rounds"] = std::lround(manager.round_number());
+        reply["total_rounds"] = manager.total_rounds();
+        return crow::response(200, reply);
     });
 }
 
@@ -161,7 +190,7 @@ crow::response ApiRoutes::to_response(const GameState& gamestate) const {
         body["your_colour"] = gamestate.your_colour;
         body["status"] = gamestate.status;
         crow::json::wvalue::list moves;
-        for (const auto& move : gamestate.moves) {
+        for (auto& move : gamestate.moves) {
             moves.push_back(std::move(move));
         }
         body["moves"] = std::move(moves);
