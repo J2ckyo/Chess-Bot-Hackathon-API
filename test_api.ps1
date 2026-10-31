@@ -1,8 +1,4 @@
-# End-to-end test of the Chess Bot API over HTTP.
-#
-# 1. In one PowerShell window:   $env:ADMIN_KEY = "your-secret";  make run
-# 2. In a second window:         $env:ADMIN_KEY = "your-secret"
-#                                powershell -ExecutionPolicy Bypass -File .\test_api.ps1
+
 
 $base  = 'http://localhost:18080/api'
 $admin = $env:ADMIN_KEY
@@ -14,7 +10,7 @@ if (-not $admin) {
 $script:passed = 0
 $script:failed = 0
 
-# Sends one request; returns its status code and the parsed JSON (if any)
+
 function Call {
     param(
         [string]$Method,
@@ -62,10 +58,9 @@ function Check($Condition, $Label) {
     }
 }
 
-# Unique names, since the server keeps its bots between runs
+
 $tag = Get-Random -Maximum 1000000
 
-# ---------------------------------------------------------------- Register
 $a = Call POST '/bots/register' @{ name = "Alpha-$tag" }
 Check ($a.Code -eq 201 -and $a.Data.api_key) 'register Alpha: 201 with a key'
 $b = Call POST '/bots/register' @{ name = "Beta-$tag" }
@@ -77,7 +72,7 @@ $betaKey  = $b.Data.api_key; $betaId  = $b.Data.bot_id
 Check ((Call POST '/bots/register' @{ name = "Alpha-$tag" }).Code -eq 400) 'duplicate name: 400'
 Check ((Call POST '/bots/register' @{ wrong = 'x' }).Code -eq 400)         'missing name: 400'
 
-# ---------------------------------------------------------------- Start a game
+
 $noAdmin = Call POST '/games' @{ white_id = $alphaId; black_id = $betaId }
 Check ($noAdmin.Code -eq 403) 'start game without admin key: 403'
 
@@ -89,14 +84,14 @@ $mine = Call GET '/my-games' -Key $alphaKey
 Check ($mine.Code -eq 200 -and ($mine.Data.games -contains $gameId)) 'my-games lists the new game'
 Check ((Call GET '/my-games' -Key 'bad-key').Code -eq 401) 'my-games with a bad key: 401'
 
-# ---------------------------------------------------------------- Game state
+
 $s = Call GET "/games/$gameId" -Key $alphaKey
 Check ($s.Code -eq 200 -and $s.Data.your_colour -eq 'white') 'Alpha sees the game as white'
 Check ($s.Data.status -eq 'in_progress') 'new game is in_progress'
 Check ((Call GET "/games/$gameId" -Key 'bad-key').Code -eq 401)       'state with a bad key: 401'
 Check ((Call GET '/games/game-999999' -Key $alphaKey).Code -eq 404)   'unknown game: 404'
 
-# ---------------------------------------------------------------- Moves
+
 Check ((Call POST "/games/$gameId/move" @{ move = 'e7e5' } -Key $betaKey).Code -eq 403) 'black moving first: 403'
 
 $m1 = Call POST "/games/$gameId/move" @{ move = 'f2f3' } -Key $alphaKey
@@ -115,7 +110,7 @@ Check ((Call POST "/games/$gameId/move" @{ move = 'a2a3' } -Key $alphaKey).Code 
 $after = Call GET '/my-games' -Key $alphaKey
 Check (-not ($after.Data.games -contains $gameId)) 'finished game drops off my-games'
 
-# ---------------------------------------------------------------- Leaderboard
+
 $lb = Call GET '/leaderboard'
 $betaRow  = $lb.Data.leaderboard | Where-Object { $_.bot_id -eq $betaId }
 $alphaRow = $lb.Data.leaderboard | Where-Object { $_.bot_id -eq $alphaId }
@@ -123,7 +118,6 @@ Check ($lb.Code -eq 200) 'leaderboard: 200'
 Check ($betaRow  -and $betaRow.wins -eq 1 -and $betaRow.rating -eq 1216)    'Beta: 1 win, rating 1216'
 Check ($alphaRow -and $alphaRow.losses -eq 1 -and $alphaRow.rating -eq 1184) 'Alpha: 1 loss, rating 1184'
 
-# ---------------------------------------------------------------- Tournament
 Check ((Call POST '/tournament/start').Code -eq 403) 'start tournament without admin key: 403'
 
 $t = Call POST '/tournament/start' -Admin $admin
@@ -133,7 +127,6 @@ $info = Call GET '/tournament'
 Check ($info.Code -eq 200 -and @($info.Data.pairings).Count -ge 1) 'tournament lists pairings'
 Check ((Call POST '/tournament/next' -Admin $admin).Code -eq 409) 'next round while games are running: 409'
 
-# ---------------------------------------------------------------- Summary
 Write-Host ''
 Write-Host "$script:passed passed, $script:failed failed"
 if ($script:failed -gt 0) { exit 1 }

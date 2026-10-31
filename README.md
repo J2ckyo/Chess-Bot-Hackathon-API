@@ -7,13 +7,7 @@ Uses Crow to route calls, haddle websockets.
 * 1. UML Diagram
 #### Done (See docs/src/Data Flow CHESS API & docs/src/UML Chess Hackathon)
 <br>
-* 2. Model
-* 2. i. Test Model
-* 3. Controller
-* 3. i. Test Controller
-* 4. View
-* 4. i. Test View
-* 5. Trials
+
 
 Crow: https://github.com/CrowCpp/Crow
 
