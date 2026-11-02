@@ -226,7 +226,7 @@ def choose_move(board: chess.Board) -> chess.Move:
 
         return bestValue
 
-    return best_move(board, 3)
+    return best_move(board, 5)
 
 
 if __name__ == "__main__":
